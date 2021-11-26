@@ -1,0 +1,42 @@
+name: Модель Спектр-РГ
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    
+    - uses: actions/checkout@v2
+    
+    - name: build
+      run: |
+        mkdir build
+        cmake -B"build" -S"srg-model"
+        cmake --build "build" --config Release
+        
+  test:
+    runs-on: windows-latest
+    needs: [build]
+    steps:
+    
+    - uses: actions/checkout@v2
+    
+    - name: build
+      run: |
+        mkdir build
+        cmake -B"build" -S"srg-model"
+        cmake --build "build" --config Release
+        
+    - name: test
+      run: build\test\Release\test.exe --gtest_output=json:test_details.json
+      
+    - name: collect artifacts
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        path: test_details.json
