@@ -5,7 +5,9 @@ project(core LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-file(GLOB CPPS "*.cpp")
-file(GLOB HS   "*.h")
+file(GLOB CPPS "src/*")
+file(GLOB HS   "include/*")
 
-add_library(core ${CPPS} ${HS} core)
+include_directories("include")
+
+add_library(core ${CPPS} ${HS})

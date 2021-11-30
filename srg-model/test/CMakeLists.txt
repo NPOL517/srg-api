@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB CPPS "*.cpp")
 
 # core
-include_directories("../core")
+include_directories("../core/include")
 
 # googletest
 set(GTEST_CLONED "googletest")
