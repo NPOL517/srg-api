@@ -10,4 +10,4 @@ file(GLOB HS   "include/*")
 
 include_directories("include")
 
-add_library(core ${CPPS} ${HS})
+add_library(core ${CPPS} ${HS} "include/RK4.h" "src/RK4.cpp")
