@@ -8,6 +8,7 @@
 // Пример вызова rk4
 int usage_rk4()
 {
+    /*
     auto path = "C:/Users/VTB/Desktop/file_sin_rk4.txt";
     double x_0 = 0;
     double y_0 = sin(x_0);
@@ -31,19 +32,20 @@ int usage_rk4()
         }
     }
     fclose(f);
-
+    */
     std::array<double, 6> arr = { -3161.946517, 2801.776225, -5322.279908, -4.795367, -5.966911, -0.292216 };
-    std::array<double, 6> arr_modified = rk4(arr, 1);
+    double time = 0;
+    std::array<double, 6> arr_modified = rk4(time, arr, 1);
     FILE* n = fopen("C:/Users/VTB/Desktop/rk4.txt", "w");
     if (n == NULL) {
         std::cout << "Failed file opening";
         return -1;
     }
     else {
-        for (int h = 1; h < 60 * 60 * 1.5; h++)
+        for (int h = 1; h < 60 * 60 * 1; h++)
         {
-            fprintf(f, "%f %f %f\n", arr_modified[0], arr_modified[1], arr_modified[2]);
-            arr_modified = rk4(arr_modified, 1);
+            fprintf(n, "%f %f %f\n", arr_modified[0], arr_modified[1], arr_modified[2]);
+            arr_modified = rk4(time, arr_modified, 1);
         }
     }
     for (auto v : arr)
