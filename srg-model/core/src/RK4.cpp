@@ -60,11 +60,11 @@ std::array<double, 6> function_of_right_values(double time, std::array<double, 6
 
 
 // Реализация метода Рунге-Кутта с помощью Таблицы Бутчера
-std::array<double, 6> rk4(double& time, std::array<double, 6>& arr_baz, double h)
+void dopri8_fixed(double& time, std::array<double, 6>& arr_baz, double h)
 {
-    std::array<std::array<double, 6>, 12> slopes;
+    std::array<std::array<double, 6>, 13> slopes;
     slopes[0] = function_of_right_values(time + butchers_c[0] * h, arr_baz);
-    for (int i = 1; i < 12; i++)
+    for (int i = 1; i < 13; i++)
     {
         for (int j = 0; j < 6; j++)
         {
@@ -82,15 +82,27 @@ std::array<double, 6> rk4(double& time, std::array<double, 6>& arr_baz, double h
     for (int j = 0; j < 6; j++)
     {
         double ks = 0;
-        for (int i = 0; i < 13; i++)
+        for (int i = 0; i < 12; i++)
         {
-            ks = ks + butchers_b_1[i] * slopes[i][j];
+            ks = ks + butchers_b_2[i] * slopes[i][j];
         }
         answer[j] = arr_baz[j] + h * ks;
 
     }
 
-
-    return answer;
+    time = time + h / 86400;
+    arr_baz = answer;
 }
+
+
+void dopri8(double &time, std::array<double, 6>& state, double interval)
+{
+    double time_0 = time;
+    for (int h = 0; h < interval; h++)
+    {
+        dopri8_fixed(time, state, 1);
+    }
+}
+
+
 
