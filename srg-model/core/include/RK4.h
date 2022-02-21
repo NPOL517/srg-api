@@ -2,13 +2,13 @@
 #define RK4_H
 #include <array>
 
-// Рунге-Кутта 4 порядка для синуса 
+// Р СѓРЅРіРµ-РљСѓС‚С‚Р° 4 РїРѕСЂСЏРґРєР° РґР»СЏ СЃРёРЅСѓСЃР° 
 void rk_sin(double& x_0, double& y_0, double h);
 
-// Функция правых частей
+// Р¤СѓРЅРєС†РёСЏ РїСЂР°РІС‹С… С‡Р°СЃС‚РµР№
 std::array<double, 6> function_of_right_values(std::array<double, 6>& arr);
 
-// Рунге-Кутта 4 порядка для задачи двух тел
+// Р СѓРЅРіРµ-РљСѓС‚С‚Р° 4 РїРѕСЂСЏРґРєР° РґР»СЏ Р·Р°РґР°С‡Рё РґРІСѓС… С‚РµР»
 std::array<double, 6> rk4(double& time, std::array<double, 6>& arr_baz, double h);
 
 #endif // RK4_H
