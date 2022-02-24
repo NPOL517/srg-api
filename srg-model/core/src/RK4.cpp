@@ -1,5 +1,6 @@
 #include "RK4.h"
 #include <cmath>
+#include <algorithm>
 
 
 // Таблица Бутчера для метода Рунге-Кутта
@@ -33,13 +34,13 @@ std::array<std::array<double, 12>, 12> butchers_a = { {
          -13158990841.0/6184727034,
          3936647629.0/1978049680, -160528059.0/685178525, 248638103.0/1413531060, 0}
         } };
-std::array<double, 12> butchers_b_2 = {13451932.0/455176623, 0, 0, 0, 0,
+std::array<double, 12> butchers_b = {13451932.0/455176623, 0, 0, 0, 0,
                                     -808719846.0/976000145, 1757004468.0/5645159321,
                                     656045339.0/265891186, -3867574721.0/1518517206,
                                     465885868.0/322736535, 53011238.0/667516719,
                                     2.0/45};
 
-std::array<double, 13> butchers_b_1 = {14005451.0/335480064, 0, 0, 0, 0,
+std::array<double, 13> butchers_bs = {14005451.0/335480064, 0, 0, 0, 0,
                                       -59238493.0/1068277825, 181606767.0/758867731,
                                       561292985.0/797845732, -1041891430.0/1371343529,
                                       760417239.0/1151165299, 118820643.0/751138087,
@@ -50,9 +51,12 @@ std::array<double, 13> butchers_c = { 0, 1.0/18, 1.0/12, 1.0/8, 5.0/16, 3.0/8,
                                     13.0/20, 1201146811.0/1299019798, 1, 1};
 
 
+
+
+
 // Функция правых частей
 std::array<double, 6> function_of_right_values(double time, 
-    std::array<double, 6>& arr)
+    const std::array<double, 6>& arr)
 {
     double mu = 398600.4415;
     double r = sqrt(arr[0] * arr[0] + arr[1] * arr[1] + arr[2] * arr[2]);
@@ -63,11 +67,10 @@ std::array<double, 6> function_of_right_values(double time,
 }
 
 
-// Реализация метода Рунге-Кутта с помощью Таблицы Бутчера
-void dopri8_fixed(double& time, std::array<double, 6>& arr_baz, double h)
+std::array<std::array<double, 6>, 13> make_slopes(double mjd, const std::array<double, 6>& init_state, double h_sec)
 {
     std::array<std::array<double, 6>, 13> slopes;
-    slopes[0] = function_of_right_values(time + butchers_c[0] * h, arr_baz);
+    slopes[0] = function_of_right_values(mjd + butchers_c[0] * h_sec, init_state);
     for (int i = 1; i < 13; i++)
     {
         for (int j = 0; j < 6; j++)
@@ -77,40 +80,102 @@ void dopri8_fixed(double& time, std::array<double, 6>& arr_baz, double h)
             {
                 h_koeff = h_koeff + butchers_a[i - 1][k] * slopes[k][j];
             }
-            slopes[i][j] = arr_baz[j] + h * h_koeff;
+            slopes[i][j] = init_state[j] + h_sec * h_koeff;
         }
-        slopes[i] = function_of_right_values(time + h * butchers_c[i] / 86400, 
+        slopes[i] = function_of_right_values(mjd + h_sec * butchers_c[i] / 86400,
             slopes[i]);
     }
+    return slopes;
+}
 
+std::array<double, 6> make_state (const std::array<std::array<double, 6>, 13>& slopes, const std::array<double, 6>& init_state, double h_sec, state_type type)
+{
     std::array<double, 6> answer;
+
+    double* b  = type == STRAIGHT ? butchers_b.data() : butchers_bs.data();
+    int b_size = type == STRAIGHT ? 12 : 13;
+
     for (int j = 0; j < 6; j++)
     {
         double ks = 0;
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < b_size; i++)
         {
-            ks = ks + butchers_b_2[i] * slopes[i][j];
+            ks = ks + b[i] * slopes[i][j];
         }
-        answer[j] = arr_baz[j] + h * ks;
+        answer[j] = init_state[j] + h_sec * ks;
 
     }
 
-    time = time + h / 86400;
-    arr_baz = answer;
+    return answer;
 }
 
-// Обертка для метода Рунге-Кутта с заданным интервальным значением
-void dopri8(double &time, std::array<double, 6>& state, double interval)
+
+// Реализация метода Рунге-Кутта с помощью Таблицы Бутчера
+void dopri8_fixed(double& mjd, std::array<double, 6>& state, double h_sec)
 {
-    for (int h = 0; h < interval; h++)
+    auto slopes = make_slopes(mjd, state, h_sec);
+    state = make_state(slopes, state, h_sec, STRAIGHT);
+    mjd += h_sec / 86400;
+}
+
+
+void dopri8_auto(double mjd, std::array<double, 6>& state, double& h_sec)
+{
+    int j = 0;
+    while (true)
     {
-        dopri8_fixed(time, state, 1);
+        auto slopes = make_slopes(mjd, state, h_sec);
+        auto state_b = make_state(slopes, state, h_sec, STRAIGHT);
+        auto state_bs = make_state(slopes, state, h_sec, ESTIMATED);
+//        double time_copy = mjd;
+//        dopri8_fixed(time_copy, state_b, h_sec);
+//        dopri8_fixed_bs(time_copy, state_bs, h_sec);
+
+        double d[3];
+        for (int i = 0; i < 3; i++)
+            d[i] = fabs(state_b[i] - state_bs[i]);
+
+        double err = *std::max_element(d, d + 3);
+
+        j++;
+        if (err > 1e-8)
+        {
+            h_sec *= 0.7;
+        }
+        else if (err < 1e-12)
+        {
+            h_sec *= 1.4;
+        }
+        else
+        {
+            state = state_b;
+            break;
+        }
+    }
+}
+
+
+// Обертка для метода Рунге-Кутта с заданным интервальным значением
+void dopri8(double& mjd, std::array<double, 6>& state, double interval)
+{
+    double step_sum = 0;
+    double step_sec = 1;
+
+    while (step_sum < interval)
+    {
+        double currentMjd = mjd + step_sum / 86400;
+        dopri8_auto(currentMjd, state, step_sec);
+        step_sum += step_sec;
     }
 
-    double fraction = 0;
-    double integer = modf(interval, &fraction);
-
-    dopri8_fixed(time, state, fraction);
+    mjd += step_sum / 86400;
+//    for (int h = 0; h < interval; h++)
+//    {
+//        dopri8_auto(time, state, 1);
+//    }
+//    double integer = 0;
+//    double fraction = modf(interval, &integer);
+//    dopri8_fixed(time, state, fraction);
 }
 
 
