@@ -1,6 +1,8 @@
 #include "RK4.h"
 #include <cmath>
 #include <algorithm>
+#include "constants.h"
+#include "julian.h"
 
 
 // Таблица Бутчера для метода Рунге-Кутта
@@ -58,16 +60,40 @@ std::array<double, 13> butchers_c = { 0, 1.0/18, 1.0/12, 1.0/8, 5.0/16, 3.0/8,
 std::array<double, 6> function_of_right_values(double time, 
     const std::array<double, 6>& arr)
 {
-    double mu = 398600.4415;
-    double r = sqrt(arr[0] * arr[0] + arr[1] * arr[1] + arr[2] * arr[2]);
-    r = r * r * r;
-    std::array<double, 6> answ = { arr[3], arr[4], arr[5], -mu * arr[0] / r,
-                                  -mu * arr[1] / r, -mu * arr[2] / r };
-    return answ;
+//    using namespace dph;
+
+//    double sun[3];
+//    DE421.calculateBody(CALC_POS, B_SUN, B_EARTH, mjd2jd(time), sun);
+
+
+
+//    double mu_earth = 398600.4415;
+//    double mu_sun = 132712440018;
+//    double r_earth = sqrt(arr[0] * arr[0] + arr[1] * arr[1] + arr[2] * arr[2]);
+//    // r_earth = r_earth * r_earth * r_earth;
+//    double r_sun = sqrt(sun[0] * sun[0] + sun[1] * sun[1] + sun[2] * sun[2]);
+//    // r_sun = r_sun * r_sun * r_sun;
+
+//    double par1 =
+
+//    std::array<double, 3> a;
+
+//    for (int i =0; i < 3; i++)
+//    {
+//        a[i] = mu_sun * ((sun[i] - arr[i]) / (r_sun - r_earth));
+//    }
+
+//    std::array<double, 6> answ = { arr[3], arr[4], arr[5], -mu_earth * arr[0] / r_earth,
+//                                  -mu_earth * arr[1] / r_earth, -mu_earth * arr[2] / r_earth };
+//    return answ;
+
+    return {};
 }
 
 
-std::array<std::array<double, 6>, 13> make_slopes(double mjd, const std::array<double, 6>& init_state, double h_sec)
+// Создание матрицы скосов
+std::array<std::array<double, 6>, 13> make_slopes(double mjd,
+    const std::array<double, 6>& init_state, double h_sec)
 {
     std::array<std::array<double, 6>, 13> slopes;
     slopes[0] = function_of_right_values(mjd + butchers_c[0] * h_sec, init_state);
@@ -88,7 +114,11 @@ std::array<std::array<double, 6>, 13> make_slopes(double mjd, const std::array<d
     return slopes;
 }
 
-std::array<double, 6> make_state (const std::array<std::array<double, 6>, 13>& slopes, const std::array<double, 6>& init_state, double h_sec, state_type type)
+
+// Определение вектора состояния (фактического или оценочного)
+std::array<double, 6> make_state(
+        const std::array<std::array<double, 6>, 13>& slopes,
+        const std::array<double, 6>& init_state, double h_sec, state_type type)
 {
     std::array<double, 6> answer;
 
@@ -110,7 +140,7 @@ std::array<double, 6> make_state (const std::array<std::array<double, 6>, 13>& s
 }
 
 
-// Реализация метода Рунге-Кутта с помощью Таблицы Бутчера
+// Реализация метода Рунге-Кутта с помощью Таблицы Бутчера с заданным шагом
 void dopri8_fixed(double& mjd, std::array<double, 6>& state, double h_sec)
 {
     auto slopes = make_slopes(mjd, state, h_sec);
@@ -119,6 +149,7 @@ void dopri8_fixed(double& mjd, std::array<double, 6>& state, double h_sec)
 }
 
 
+// Реализация метода Рунге-Кутта с динамическим определением шага по времени
 void dopri8_auto(double mjd, std::array<double, 6>& state, double& h_sec)
 {
     int j = 0;
@@ -155,27 +186,39 @@ void dopri8_auto(double mjd, std::array<double, 6>& state, double& h_sec)
 }
 
 
-// Обертка для метода Рунге-Кутта с заданным интервальным значением
-void dopri8(double& mjd, std::array<double, 6>& state, double interval)
+// Обертка для метода Рунге-Кутта с заданным интервальным значением времени
+void dopri8(double& mjd, std::array<double, 6>& state, double interval,
+    CallBack callBack)
 {
     double step_sum = 0;
     double step_sec = 1;
+    std::array<double, 6> state_local_copy = state;
 
-    while (step_sum < interval)
+    if (callBack)
+        callBack(mjd, state);
+
+    while (true)
     {
         double currentMjd = mjd + step_sum / 86400;
-        dopri8_auto(currentMjd, state, step_sec);
+        dopri8_auto(currentMjd, state_local_copy, step_sec);
+        if (step_sum + step_sec > interval)
+            break;
+
         step_sum += step_sec;
+        state = state_local_copy;
+
+        if (callBack)
+            callBack(mjd + step_sum / 86400, state);
     }
 
-    mjd += step_sum / 86400;
-//    for (int h = 0; h < interval; h++)
-//    {
-//        dopri8_auto(time, state, 1);
-//    }
-//    double integer = 0;
-//    double fraction = modf(interval, &integer);
-//    dopri8_fixed(time, state, fraction);
+    if (interval - step_sum > 0)
+    {
+        mjd += step_sum / 86400;
+        dopri8_fixed(mjd, state, interval - step_sum);
+
+        if (callBack)
+            callBack(mjd, state);
+    }
 }
 
 

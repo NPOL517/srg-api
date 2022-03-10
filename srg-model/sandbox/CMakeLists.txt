@@ -15,3 +15,5 @@ add_executable(sandbox ${CPPS})
 
 target_link_directories(sandbox PUBLIC ${CMAKE_BINARY_DIR}/core)
 target_link_libraries(sandbox core)
+
+file(COPY ../bin/lnxp1900p2053.421 DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
