@@ -5,6 +5,14 @@
 #include "julian.h"
 
 
+// Возврат модуля вектора
+double vec_mod(const double a[3])
+{
+    return sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+}
+
+
+
 // Таблица Бутчера для метода Рунге-Кутта
 std::array<std::array<double, 12>, 12> butchers_a = { {
         {1.0 / 18},
@@ -58,36 +66,41 @@ std::array<double, 13> butchers_c = { 0, 1.0/18, 1.0/12, 1.0/8, 5.0/16, 3.0/8,
 
 // Функция правых частей
 std::array<double, 6> function_of_right_values(double time, 
-    const std::array<double, 6>& arr)
+    const std::array<double, 6>& rv)
 {
-//    using namespace dph;
+    using namespace dph;
 
-//    double sun[3];
-//    DE421.calculateBody(CALC_POS, B_SUN, B_EARTH, mjd2jd(time), sun);
+    double sun[3];
+    DE421.calculateBody(CALC_POS, B_SUN, B_EARTH, mjd2jd(time), sun);
 
 
 
-//    double mu_earth = 398600.4415;
-//    double mu_sun = 132712440018;
-//    double r_earth = sqrt(arr[0] * arr[0] + arr[1] * arr[1] + arr[2] * arr[2]);
-//    // r_earth = r_earth * r_earth * r_earth;
-//    double r_sun = sqrt(sun[0] * sun[0] + sun[1] * sun[1] + sun[2] * sun[2]);
-//    // r_sun = r_sun * r_sun * r_sun;
+    double mu_earth = 398600.4415;
+    double mu_sun = 132712440018;
 
-//    double par1 =
+    double rv_mod = vec_mod(rv.data());
+    double rv_mod3 = rv_mod * rv_mod * rv_mod;
 
-//    std::array<double, 3> a;
+    double sun_mod = vec_mod(sun);
+    double sun_mod3 = sun_mod * sun_mod * sun_mod;
 
-//    for (int i =0; i < 3; i++)
-//    {
-//        a[i] = mu_sun * ((sun[i] - arr[i]) / (r_sun - r_earth));
-//    }
 
-//    std::array<double, 6> answ = { arr[3], arr[4], arr[5], -mu_earth * arr[0] / r_earth,
-//                                  -mu_earth * arr[1] / r_earth, -mu_earth * arr[2] / r_earth };
-//    return answ;
+    double d_sun_rv[3] {(sun[0] - rv[0]), (sun[1] - rv[1]), (sun[2] - rv[2])};
 
-    return {};
+    double d_sun_rv_mod = vec_mod(d_sun_rv);
+
+    double d_sun_rv_mod3 = d_sun_rv_mod * d_sun_rv_mod * d_sun_rv_mod;
+
+    std::array<double, 3> a;
+
+    for (int i = 0; i < 3; i++)
+        a[i] = -mu_earth * rv[i] / rv_mod3;
+
+    for (int i = 0; i < 3; i++)
+        a[i] += mu_sun * (d_sun_rv[i] / d_sun_rv_mod3 - sun[i] / sun_mod3);
+
+    std::array<double, 6> answ = { rv[3], rv[4], rv[5], a[0], a[1], a[2] };
+    return answ;
 }
 
 

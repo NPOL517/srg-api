@@ -5,19 +5,22 @@
 #include <functional>
 
 
+// Тип вектора состояния
 enum state_type
 {
     STRAIGHT,
     ESTIMATED
 };
 
+// Возврат модуля вектора
+double vec_mod(const double a[3]);
+
 // Рунге-Кутта 4 порядка для синуса 
 void rk_sin(double& x_0, double& y_0, double h);
 
 // Функция правых частей
 std::array<double, 6> function_of_right_values(double time,
-                                               const std::array<double,
-                                               6>& arr);
+                                               const std::array<double, 6>& rv);
 
 // Создание матрицы скосов
 std::array<std::array<double, 6>, 13> make_slopes(double mjd,
