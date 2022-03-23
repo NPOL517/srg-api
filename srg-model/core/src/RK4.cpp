@@ -233,6 +233,3 @@ void dopri8(double& mjd, std::array<double, 6>& state, double interval,
             callBack(mjd, state);
     }
 }
-
-
-
