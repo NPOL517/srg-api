@@ -1,7 +1,0 @@
-#ifndef CORE_M
-#define CORE_M
-
-#include "constants.h"
-#include "julian.h"
-
-#endif /* CORE_M */

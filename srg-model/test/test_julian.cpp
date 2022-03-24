@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <core>
+#include "julian.h"
 
 TEST(julian, cal2jd)
 {
