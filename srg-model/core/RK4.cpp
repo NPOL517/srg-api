@@ -70,34 +70,69 @@ std::array<double, 6> function_of_right_values(double time,
 {
     using namespace dph;
 
-    double sun[3];
-    DE421.calculateBody(CALC_POS, B_SUN, B_EARTH, mjd2jd(time), sun);
+
+
+    double mus[8] = {  // Гравитационные постоянные
+        22032,          // Меркурий
+        324859,         // Венера
+        //398600.4415,  // Земля
+        42828,          // Марс
+        126686534,      // Юпитер
+        37931187,       // Сатурн
+        5793939,        // Уран
+        6836529,        // Нептун
+        132712440018    // Солнце
+    };
+
+
+    constexpr unsigned indices[8] = { // Значения параметров для метода dph::EphemerisReelase::calculateBody
+        B_MERCURY,
+        B_VENUS,
+        //B_EARTH,
+        B_MARS,
+        B_JUPITER,
+        B_SATURN,
+        B_URANUS,
+        B_NEPTUNE,
+        B_SUN
+    };
+
 
 
 
     double mu_earth = 398600.4415;
-    double mu_sun = 132712440018;
 
     double rv_mod = vec_mod(rv.data());
     double rv_mod3 = rv_mod * rv_mod * rv_mod;
 
-    double sun_mod = vec_mod(sun);
-    double sun_mod3 = sun_mod * sun_mod * sun_mod;
-
-
-    double d_sun_rv[3] {(sun[0] - rv[0]), (sun[1] - rv[1]), (sun[2] - rv[2])};
-
-    double d_sun_rv_mod = vec_mod(d_sun_rv);
-
-    double d_sun_rv_mod3 = d_sun_rv_mod * d_sun_rv_mod * d_sun_rv_mod;
-
     std::array<double, 3> a;
-
     for (int i = 0; i < 3; i++)
         a[i] = -mu_earth * rv[i] / rv_mod3;
 
-    for (int i = 0; i < 3; i++)
-        a[i] += mu_sun * (d_sun_rv[i] / d_sun_rv_mod3 - sun[i] / sun_mod3);
+
+
+    // Возмущения от планет и солнца
+    for (int i = 0; i < 8; i++)
+    {
+        double mu_body = mus[i];
+
+        double body[3];
+        DE421.calculateBody(CALC_POS, indices[i], B_EARTH, mjd2jd(time), body);
+
+        double body_mod = vec_mod(body);
+        double body_mod3 = body_mod * body_mod * body_mod;
+
+        double d_body_rv[3] {(body[0] - rv[0]), (body[1] - rv[1]),
+                    (body[2] - rv[2])};
+
+        double d_body_rv_mod = vec_mod(d_body_rv);
+
+        double d_body_rv_mod3 = d_body_rv_mod * d_body_rv_mod * d_body_rv_mod;
+
+        for (int i = 0; i < 3; i++)
+            a[i] += mu_body * (d_body_rv[i] / d_body_rv_mod3 - body[i] / body_mod3);
+    }
+
 
     std::array<double, 6> answ = { rv[3], rv[4], rv[5], a[0], a[1], a[2] };
     return answ;
@@ -233,3 +268,34 @@ void dopri8(double& mjd, std::array<double, 6>& state, double interval,
             callBack(mjd, state);
     }
 }
+
+
+
+// Обертка для dopri8 для получения состояния через заданный шаг
+void dopri8(double mjd, std::array<double, 6> state, double interval,
+    double h_sec, CallBack callBack)
+{
+    if (callBack)
+        callBack(mjd, state);
+
+    size_t count = interval / h_sec;
+
+    for(size_t i = 0; i < count; i++)
+    {
+        dopri8(mjd, state, h_sec);
+        if (callBack)
+            callBack(mjd, state);
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+

@@ -42,15 +42,16 @@ int main()
 
     int day=1, month=1, year=2000;
     double time_mjd = cal2mjd(day, month, year);
-    double h = 100;
-    dopri8(time_mjd, arr, h,
+    double interval = 24 * 60 * 60;
+    double step_sec = 60;
+    dopri8(time_mjd, arr, interval, step_sec,
            [&](double mjd, const std::array<double, 6>& state)
             {
 //                State s;
 //                s.mjd = mjd;
 //                s.state = state;
-                  std::cout << counter << std::endl;
-                  counter++;
+//                  std::cout << counter << std::endl;
+//                  counter++;
                   int day, month, year, hour, min, sec, msec;
                   mjd2cal(mjd, day, month, year, hour, min, sec, msec);
                   fprintf(f, "%02d.%02d.%04d_%02d:%02d:%02d.%03d %f %f %f %f %f %f %f\n",

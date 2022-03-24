@@ -46,5 +46,9 @@ using CallBack = std::function<void(double mjd,
 void dopri8(double &time, std::array<double, 6>& state, double interval,
     CallBack callBack = {});
 
+// Обертка для dopri8 для получения состояния через заданный шаг
+void dopri8(double mjd, std::array<double, 6> state, double interval,
+            double h_sec, CallBack callBack = {});
+
 
 #endif // RK4_H
